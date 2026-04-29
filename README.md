@@ -27,6 +27,43 @@ Modular design with three main layers:
 
 ---
 
+## Data Flow
+
+```mermaid
+sequenceDiagram
+    participant User
+    participant Frontend as Frontend (HTML/CSS/JS)
+    participant API as FastAPI Backend
+    participant Parser as Text Extractor
+    participant Model as TinyLlama + LoRA
+    participant S3 as AWS S3 (optional)
+
+    User->>Frontend: 1. Upload resume (PDF/TXT)
+    Frontend->>API: 2. POST /api/v1/extract (multipart/form-data)
+    API->>API: 3. Validate file type & size
+    alt PDF
+        API->>Parser: 4a. extract_text_from_pdf()
+    else TXT
+        API->>Parser: 4b. extract_text_from_txt()
+    end
+    Parser-->>API: 5. Raw resume text
+    API->>Model: 6. extract_fields(text)
+    Model->>Model: 7. _build_prompt() → tokenize
+    Model->>Model: 8. model.generate() inference
+    Model->>Model: 9. _parse_model_output() JSON
+    Model-->>API: 10. {Name, Email, Skills, Education}
+    API->>API: 11. Build ResumeData response
+    API-->>Frontend: 12. JSON response (200 OK)
+    Frontend->>User: 13. Display extracted fields
+
+    opt AWS Deployment
+        API-->>S3: Store uploaded resume
+        S3-->>API: s3://bucket/filename
+    end
+```
+
+---
+
 ## Project Structure
 
 ```
@@ -43,13 +80,19 @@ resume-extractor-backend/
 ├── final-resume-model/      # LoRA adapter weights (2.2 MB)
 │   ├── adapter_config.json
 │   ├── adapter_model.safetensors
+│   ├── chat_template.jinja
 │   ├── tokenizer_config.json
 │   └── tokenizer.json
-├── ResumeExtraction.ipynb   # Model training notebook
-├── main.py                  # Entry point (uvicorn runner)
-├── requirements.txt         # Python dependencies
-├── DockerFile               # Docker containerization
-└── README.md                # This file
+├── notebooks/
+│   └── ResumeExtraction.ipynb   # Model training notebook
+├── main.py                      # Entry point (uvicorn runner)
+├── requirements.txt             # Python dependencies
+├── pyproject.toml               # Project metadata
+├── Dockerfile                   # Docker containerization
+├── .dockerignore
+├── .gitignore
+├── .python-version
+└── README.md
 ```
 
 ---
@@ -126,7 +169,7 @@ uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 
 ```bash
 # Build
-docker build -t resume-extractor -f DockerFile .
+docker build -t resume-extractor -f Dockerfile .
 
 # Run
 docker run -p 8000:8000 resume-extractor
@@ -274,7 +317,7 @@ S3 upload code is implemented in `app/utils/s3_helper.py` but commented out in t
 - **Fields:** Name, Email Address, Skills, Education, Experience
 
 ### Training Notebook
-See `ResumeExtraction.ipynb` for complete training workflow:
+See `notebooks/ResumeExtraction.ipynb` for complete training workflow:
 1. Dataset loading and preprocessing
 2. Model loading with 4-bit quantization (BitsAndBytes)
 3. LoRA configuration and SFTTrainer setup
@@ -294,7 +337,7 @@ See `ResumeExtraction.ipynb` for complete training workflow:
 | **API Reliability** | Success rate, error handling |
 | **Monitoring** | CloudWatch logs and metrics |
 
-Evaluation code is in `ResumeExtraction.ipynb` (Cell 5).
+Evaluation code is in `notebooks/ResumeExtraction.ipynb` (Cell 5).
 
 ---
 
