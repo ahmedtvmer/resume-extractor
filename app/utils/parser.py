@@ -37,7 +37,7 @@ def _extract_text_from_txt_sync(file_bytes: bytes) -> str:
     Synchronous implementation - use extract_text_from_txt() for async interface.
     """
     try:
-        text = file_bytes.decode("utf-8", errors="replace")
+        text = file_bytes.decode("utf-8", errors="strict")
         
         if not text.strip():
             raise ValueError("Text file is empty.")

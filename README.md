@@ -16,7 +16,7 @@ Manual resume processing is time-consuming and inefficient for recruiters and HR
 
 ## Architecture
 
-Modular design with three main layers:
+Modular design with the following layers:
 
 | Layer | Technology |
 |-------|------------|
@@ -38,6 +38,7 @@ sequenceDiagram
     participant Parser as Text Extractor
     participant Model as TinyLlama + LoRA
     participant S3 as AWS S3 (optional)
+    participant DB as MongoDB (Beanie)
 
     User->>Frontend: 1. Upload resume (PDF/TXT)
     Frontend->>API: 2. POST /api/v1/extract (multipart/form-data)
@@ -54,8 +55,9 @@ sequenceDiagram
     Model->>Model: 9. _parse_model_output() JSON
     Model-->>API: 10. {Name, Email, Skills, Education}
     API->>API: 11. Build ResumeData response
-    API-->>Frontend: 12. JSON response (200 OK)
-    Frontend->>User: 13. Display extracted fields
+    API->>DB: 12. Persist to MongoDB (non-blocking)
+    API-->>Frontend: 13. JSON response (200 OK)
+    Frontend->>User: 14. Display extracted fields
 
     opt AWS Deployment
         API-->>S3: Store uploaded resume
@@ -309,7 +311,7 @@ DATABASE_NAME=resume_extraction
 |-------|------|-------------|
 | `_id` | ObjectId | Auto-generated MongoDB ID |
 | `name` | str | Extracted candidate name |
-| `email` | EmailStr | Validated email address |
+| `email` | Optional[EmailStr] | Validated email address (nullable) |
 | `education` | str | Education fields joined with `; ` |
 | `skills` | List[str] | Array of extracted skills |
 
@@ -366,7 +368,7 @@ Tests:
 
 ### S3 Integration
 
-S3 upload code is implemented in `app/utils/s3_helper.py` but commented out in the API route for local development. Uncomment line 90 in `app/main.py` when deploying to AWS.
+S3 upload code is implemented in `app/utils/s3_helper.py` but commented out in the API route for local development. Uncomment line 116 in `app/main.py` when deploying to AWS.
 
 ---
 

@@ -21,6 +21,10 @@ COPY . .
 # or mount it at runtime:  -v /path/to/final-resume-model:/app/final-resume-model
 ENV RESUME_MODEL_PATH=/app/final-resume-model
 
+# MongoDB configuration - override with -e flags at runtime
+ENV MONGO_URL=mongodb://localhost:27017
+ENV DATABASE_NAME=resume_extraction
+
 EXPOSE 8000
 
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
