@@ -17,4 +17,9 @@ dependencies = [
     "peft>=0.11.0",
     "accelerate>=0.30.0",
     "sentencepiece>=0.2.0",
+    "beanie==1.25.0",
+    "motor==3.3.2",
+    "pymongo==4.6.3",
+    "email-validator==2.3.0",
+    "dnspython==2.8.0",
 ]

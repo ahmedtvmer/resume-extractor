@@ -12,6 +12,8 @@ from fastapi import FastAPI, UploadFile, File, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.models import ExtractionResponse, ResumeData
+from app.db_models import ResumeDocument
+from app.database import init_db
 from app.utils.parser import extract_text_from_pdf, extract_text_from_txt
 from app.utils.ai_extractor import load_model, unload_model, extract_fields
 
@@ -24,11 +26,17 @@ AWS_SECRET_KEY = os.getenv("AWS_SECRET_ACCESS_KEY")
 AWS_REGION = os.getenv("AWS_REGION")
 S3_BUCKET_NAME = os.getenv("S3_BUCKET_NAME")
 
+MONGO_URL = os.getenv("MONGO_URL")
+DATABASE_NAME = os.getenv("DATABASE_NAME")
+
 MAX_UPLOAD_SIZE_MB = int(os.getenv("MAX_UPLOAD_SIZE_MB", "10"))
 MAX_UPLOAD_SIZE_BYTES = MAX_UPLOAD_SIZE_MB * 1024 * 1024
 
 if not all([AWS_ACCESS_KEY, AWS_SECRET_KEY, AWS_REGION, S3_BUCKET_NAME]):
     logger.warning("Missing AWS credentials - S3 features will be unavailable")
+
+if not all([MONGO_URL, DATABASE_NAME]):
+    logger.warning("Missing MongoDB configuration - DB persistence disabled")
 
 
 # ---------------------------------------------------------------------------
@@ -39,6 +47,7 @@ async def lifespan(app: FastAPI):
     """Load the AI model into memory when the server starts."""
     logger.info("🚀 Starting up – loading AI model …")
     load_model()
+    await init_db()
     yield
     logger.info("🛑 Shutting down – unloading AI model …")
     unload_model()
@@ -62,6 +71,20 @@ app.add_middleware(
 @app.get("/")
 def health_check():
     return {"status": "API is running"}
+
+
+@app.get("/api/v1/resumes")
+async def get_all_resumes():
+    """
+    Retrieve all stored resumes from MongoDB.
+    Returns an empty list if no resumes have been stored.
+    """
+    try:
+        resumes = await ResumeDocument.find_all().to_list()
+        return resumes
+    except Exception:
+        logger.warning("Failed to retrieve resumes from MongoDB.")
+        raise HTTPException(status_code=503, detail="Database unavailable")
 
 
 @app.post("/api/v1/extract", response_model=ExtractionResponse)
@@ -122,6 +145,19 @@ async def extract_resume(file: UploadFile = File(...)):
             skills=skills_list,
             education=education_list,
         )
+
+        education_str = "; ".join(education_list) if education_list else ""
+        try:
+            doc = ResumeDocument(
+                name=resume_data.name,
+                email=resume_data.email,
+                education=education_str,
+                skills=resume_data.skills,
+            )
+            await doc.insert()
+            logger.info("Persisted extraction result to MongoDB: %s", doc.id)
+        except Exception:
+            logger.warning("Failed to persist extraction result to MongoDB.")
 
         return ExtractionResponse(
             status="success",
@@ -236,6 +272,17 @@ if __name__ == "__main__":
             print("PASSED - Extracted:", data["data"])
         else:
             print(f"Skipped: {response.status_code}")
+        print()
+        
+        # Test 7: Get all resumes endpoint
+        print("Test 7: GET /api/v1/resumes endpoint")
+        response = client.get("/api/v1/resumes")
+        if response.status_code == 200:
+            print("PASSED - Returns:", response.json())
+        elif response.status_code == 503:
+            print("Skipped (DB unavailable): 503")
+        else:
+            print(f"FAILED: {response.status_code}")
         print()
         
         print("All tests completed!")

@@ -23,6 +23,7 @@ Modular design with three main layers:
 | **Backend API** | FastAPI (Python 3.12) |
 | **AI/ML** | TinyLlama-1.1B-Chat + LoRA (PEFT), PyTorch, HuggingFace Transformers |
 | **Document Processing** | PyMuPDF (PDF parsing) |
+| **Database** | MongoDB with Beanie ODM (asynchronous) |
 | **Deployment** | Docker containerized for AWS EC2 |
 
 ---
@@ -148,6 +149,8 @@ The fine-tuned LoRA adapter is already included in `final-resume-model/`. No add
 |----------|---------|-------------|
 | `MAX_UPLOAD_SIZE_MB` | `10` | Maximum file upload size in MB |
 | `RESUME_MODEL_PATH` | `./final-resume-model` | Path to LoRA adapter directory |
+| `MONGO_URL` | - | MongoDB connection string (e.g., `mongodb://admin:password123@localhost:27017`) |
+| `DATABASE_NAME` | - | MongoDB database name (e.g., `resume_extraction`) |
 | `AWS_ACCESS_KEY_ID` | - | AWS credentials (for S3 deployment) |
 | `AWS_SECRET_ACCESS_KEY` | - | AWS credentials (for S3 deployment) |
 | `AWS_REGION` | `us-east-1` | AWS region |
@@ -191,6 +194,33 @@ GET /
 ```json
 {"status": "API is running"}
 ```
+
+---
+
+### Get All Stored Resumes
+
+```http
+GET /api/v1/resumes
+```
+
+**Response (200 OK):**
+```json
+[
+  {
+    "_id": "...",
+    "name": "Ahmed Tamer",
+    "email": "ahmed.tamer@example.com",
+    "education": "BS in Computer Science",
+    "skills": ["Python", "SQL", "Machine Learning"]
+  }
+]
+```
+
+**Error Response:**
+
+| Status | Description |
+|--------|-------------|
+| 503 | MongoDB database unavailable |
 
 ---
 
@@ -242,6 +272,46 @@ curl -X POST http://localhost:8000/api/v1/extract \
 
 ---
 
+## Database Persistence
+
+All extracted resume data is automatically persisted to MongoDB for later retrieval and analysis.
+
+### Architecture
+- **ODM:** Beanie (async MongoDB ODM for Python)
+- **Driver:** Motor (async MongoDB driver)
+- **Collection:** `profiles` in the `resume_extraction` database
+- **Storage:** Non-blocking — extraction succeeds even if DB is unavailable
+
+### Local MongoDB Setup
+
+Run MongoDB locally using Docker:
+
+```bash
+docker run -d --name mongodb-local \
+  -p 27017:27017 \
+  -e MONGO_INITDB_ROOT_USERNAME=admin \
+  -e MONGO_INITDB_ROOT_PASSWORD=password123 \
+  mongo
+```
+
+Then ensure `.env` contains:
+```
+MONGO_URL=mongodb://admin:password123@localhost:27017
+DATABASE_NAME=resume_extraction
+```
+
+### Data Model
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `_id` | ObjectId | Auto-generated MongoDB ID |
+| `name` | str | Extracted candidate name |
+| `email` | EmailStr | Validated email address |
+| `education` | str | Education fields joined with `; ` |
+| `skills` | List[str] | Array of extracted skills |
+
+---
+
 ## Testing
 
 ### Unit Tests (Parser)
@@ -271,6 +341,7 @@ Tests:
 - Plain text file acceptance
 - Oversized file rejection
 - Valid PDF processing
+- GET /api/v1/resumes endpoint (DB retrieval)
 
 ---
 
