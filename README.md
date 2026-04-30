@@ -73,6 +73,8 @@ resume-extractor-backend/
 │   ├── __init__.py
 │   ├── main.py              # FastAPI app, routes, lifespan, tests
 │   ├── models.py            # Pydantic response models
+│   ├── db_models.py         # Beanie Document models (MongoDB)
+│   ├── database.py          # MongoDB connection initializer
 │   └── utils/
 │       ├── __init__.py
 │       ├── ai_extractor.py  # Model loading, inference, JSON parsing
@@ -93,6 +95,7 @@ resume-extractor-backend/
 ├── .dockerignore
 ├── .gitignore
 ├── .python-version
+├── .env                         # Environment variables (not committed)
 └── README.md
 ```
 
@@ -426,7 +429,6 @@ Evaluation code is in `notebooks/ResumeExtraction.ipynb` (Cell 5).
 - Confidence scores per extracted field
 - Arabic resume support
 - Frontend UI (separate repository)
-- Database persistence (MongoDB/DynamoDB)
 
 ### Constraints
 - Maximum file size: 10 MB (configurable)
