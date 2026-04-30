@@ -227,10 +227,10 @@ if __name__ == "__main__":
         
         # Test 1: Valid JSON
         print("Test 1: Valid JSON parsing")
-        output = '{"Name": "John Doe", "Email Address": "john@example.com", "Skills": "Python, SQL", "Education": "BS CS"}'
+        output = '{"Name": "Ahmed Tamer", "Email Address": "ahmed.tamer@example.com", "Skills": "Python, SQL", "Education": "BS CS"}'
         result = _parse_model_output(output)
-        assert result["Name"] == "John Doe"
-        assert result["Email Address"] == "john@example.com"
+        assert result["Name"] == "Ahmed Tamer"
+        assert result["Email Address"] == "ahmed.tamer@example.com"
         assert result["Skills"] == "Python, SQL"
         assert result["Education"] == "BS CS"
         print("PASSED\n")
@@ -247,18 +247,18 @@ if __name__ == "__main__":
         
         # Test 3: Code-fenced JSON
         print("Test 3: Code-fenced JSON (```json ... ```)")
-        output = '```json\n{"Name": "Jane", "Email Address": "jane@test.com", "Skills": "Java", "Education": "MS"}\n```'
+        output = '```json\n{"Name": "Ahmed Tamer", "Email Address": "ahmed.tamer@example.com", "Skills": "Java", "Education": "MS"}\n```'
         result = _parse_model_output(output)
-        assert result["Name"] == "Jane"
-        assert result["Email Address"] == "jane@test.com"
+        assert result["Name"] == "Ahmed Tamer"
+        assert result["Email Address"] == "ahmed.tamer@example.com"
         print("PASSED\n")
         
         # Test 4: JSON embedded in text (regex fallback)
         print("Test 4: JSON embedded in text (regex extraction)")
-        output = 'Here is the result: {"Name": "Bob", "Email Address": "bob@test.com", "Skills": "C++", "Education": "PhD"} extracted.'
+        output = 'Here is the result: {"Name": "Ahmed Tamer", "Email Address": "ahmed.tamer@example.com", "Skills": "C++", "Education": "PhD"} extracted.'
         result = _parse_model_output(output)
-        assert result["Name"] == "Bob"
-        assert result["Email Address"] == "bob@test.com"
+        assert result["Name"] == "Ahmed Tamer"
+        assert result["Email Address"] == "ahmed.tamer@example.com"
         print("PASSED\n")
         
         # Test 5: Malformed output (fallback to empty)
@@ -270,10 +270,10 @@ if __name__ == "__main__":
         
         # Test 6: With ### Response: prefix
         print("Test 6: Output with ### Response: prefix")
-        output = '### Instruction: ...\n### Input: ...\n### Response: {"Name": "Alice", "Email Address": "alice@test.com", "Skills": "Rust", "Education": "BS"}'
+        output = '### Instruction: ...\n### Input: ...\n### Response: {"Name": "Ahmed Tamer", "Email Address": "ahmed.tamer@example.com", "Skills": "Rust", "Education": "BS"}'
         result = _parse_model_output(output)
-        assert result["Name"] == "Alice"
-        assert result["Email Address"] == "alice@test.com"
+        assert result["Name"] == "Ahmed Tamer"
+        assert result["Email Address"] == "ahmed.tamer@example.com"
         print("PASSED\n")
         
         print("All unit tests passed!")

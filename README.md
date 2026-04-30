@@ -113,8 +113,8 @@ resume-extractor-backend/
 ### Output Format
 ```json
 {
-  "Name": "John Doe",
-  "Email Address": "john@example.com",
+  "Name": "Ahmed Tamer",
+  "Email Address": "ahmed.tamer@example.com",
   "Skills": "Python, SQL, Machine Learning",
   "Education": "BS in Computer Science"
 }
@@ -210,8 +210,8 @@ Content-Type: multipart/form-data
   "status": "success",
   "message": "Successfully extracted data from resume.pdf",
   "data": {
-    "name": "John Doe",
-    "email": "john@example.com",
+    "name": "Ahmed Tamer",
+    "email": "ahmed.tamer@example.com",
     "skills": ["Python", "SQL", "Machine Learning"],
     "education": ["BS in Computer Science"]
   }

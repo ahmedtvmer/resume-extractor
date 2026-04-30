@@ -180,7 +180,7 @@ if __name__ == "__main__":
         
         # Test 4: Accept plain text file
         print("Test 4: Accept plain text file")
-        txt_content = b"John Doe\njohn@example.com\nSkills: Python, SQL\nEducation: BS Computer Science"
+        txt_content = b"Ahmed Tamer\nahmed.tamer@example.com\nSkills: Python, SQL\nEducation: BS Computer Science"
         response = client.post(
             "/api/v1/extract",
             files={"file": ("resume.txt", txt_content, "text/plain")}
