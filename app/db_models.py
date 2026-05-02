@@ -1,11 +1,11 @@
 from typing import List, Optional
-from beanie import Document
-from pydantic import EmailStr
+from beanie import Document , Indexed
+from pydantic import EmailStr, Field
 
 
 class ResumeDocument(Document):
     name: str = ""
-    email: Optional[EmailStr] = None
+    email: Optional[Indexed(EmailStr, unique = True)] = Field(default=None)
     education: str = ""
     skills: List[str] = []
 

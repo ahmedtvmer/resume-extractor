@@ -133,20 +133,14 @@ def _parse_model_output(raw_output: str) -> Dict[str, str]:
     else:
         response_text = raw_output.strip()
 
-    # Strip markdown code fences if present (e.g., ```json ... ```)
-    if response_text.startswith("```"):
-        lines = response_text.split("\n")
-        if lines[0].startswith("```"):
-            lines = lines[1:]
-        if lines and lines[-1].strip() == "```":
-            lines = lines[:-1]
-        response_text = "\n".join(lines).strip()
+    # Strip markdown code fences if present
+    response_text = re.sub(r"```json|```", "", response_text).strip()
 
     # Attempt 1: Direct JSON parse
     try:
         parsed = json.loads(response_text)
         if isinstance(parsed, dict):
-            return {field: parsed.get(field, "") or "" for field in FIELDS}
+            return {field: str(parsed.get(field, "") or "") for field in FIELDS}
     except (json.JSONDecodeError, TypeError):
         pass
 
@@ -156,13 +150,26 @@ def _parse_model_output(raw_output: str) -> Dict[str, str]:
         try:
             parsed = json.loads(json_match.group())
             if isinstance(parsed, dict):
-                return {field: parsed.get(field, "") or "" for field in FIELDS}
+                return {field: str(parsed.get(field, "") or "") for field in FIELDS}
         except (json.JSONDecodeError, TypeError):
             pass
 
-    # Attempt 3: Fallback – return the raw text in a best-effort dict
+    # Attempt 3: Regex fallback - لضمان عدم ظهور NotFound في الفرونت إند
     logger.warning("Could not parse model output as JSON. Raw: %s", response_text[:300])
-    return {field: "" for field in FIELDS}
+    extracted = {field: "" for field in FIELDS}
+    
+    # استخراج البيانات باستخدام Regex لملء الحقول المطلوبة
+    name_match = re.search(r"Name:\s*(.*?)(?=Email:|Phone:|Education:|Skills:|$)", response_text, re.IGNORECASE)
+    email_match = re.search(r"Email:\s*([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})", response_text, re.IGNORECASE)
+    skills_match = re.search(r"Skills:\s*(.*?)(?=Education:|Experience:|Explanation:|$)", response_text, re.IGNORECASE)
+    edu_match = re.search(r"Education:\s*(.*?)(?=Skills:|Experience:|Explanation:|$)", response_text, re.IGNORECASE)
+
+    if name_match: extracted["Name"] = name_match.group(1).strip()
+    if email_match: extracted["Email Address"] = email_match.group(1).strip()
+    if skills_match: extracted["Skills"] = skills_match.group(1).strip()
+    if edu_match: extracted["Education"] = edu_match.group(1).strip()
+
+    return extracted
 
 
 async def extract_fields(resume_text: str) -> Dict[str, str]:
