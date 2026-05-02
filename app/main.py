@@ -16,6 +16,10 @@ from app.db_models import ResumeDocument
 from app.database import init_db
 from app.utils.parser import extract_text_from_pdf, extract_text_from_txt
 from app.utils.ai_extractor import load_model, unload_model, extract_fields
+from fastapi.staticfiles import StaticFiles
+from fastapi.templating import Jinja2Templates
+from fastapi.responses import HTMLResponse
+from fastapi import Request
 
 load_dotenv()
 
@@ -45,11 +49,11 @@ if not all([MONGO_URL, DATABASE_NAME]):
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Load the AI model into memory when the server starts."""
-    logger.info("🚀 Starting up – loading AI model …")
+    logger.info("Starting up – loading AI model ...")
     load_model()
     await init_db()
     yield
-    logger.info("🛑 Shutting down – unloading AI model …")
+    logger.info("Shutting down – unloading AI model ...")
     unload_model()
 
 
@@ -66,11 +70,15 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+app.mount("/static", StaticFiles(directory="static"), name="static")
+templates = Jinja2Templates(directory="templates") 
 
-
-@app.get("/")
-def health_check():
-    return {"status": "API is running"}
+@app.get("/", response_class=HTMLResponse)
+async def health_check(request: Request):
+   return templates.TemplateResponse(
+        request=request, 
+        name="index.html"
+    )
 
 
 @app.get("/api/v1/resumes")
@@ -83,9 +91,16 @@ async def get_all_resumes():
         resumes = await ResumeDocument.find_all().to_list()
         return resumes
     except Exception:
+        
         logger.warning("Failed to retrieve resumes from MongoDB.")
         raise HTTPException(status_code=503, detail="Database unavailable")
-
+@app.get("/view-resumes", response_class=HTMLResponse)
+async def view_resumes_page(request: Request):
+  
+    return templates.TemplateResponse(
+        request=request, 
+        name="resumes.html"
+    )
 
 @app.post("/api/v1/extract", response_model=ExtractionResponse)
 async def extract_resume(file: UploadFile = File(...)):
@@ -130,18 +145,18 @@ async def extract_resume(file: UploadFile = File(...)):
         skills_list = (
             [s.strip() for s in skills_raw.split(",") if s.strip()]
             if isinstance(skills_raw, str)
-            else skills_raw
+            else (skills_raw if isinstance(skills_raw, list) else [])
         )
 
         education_raw = extracted.get("Education", "")
         education_list = (
             [education_raw.strip()] if isinstance(education_raw, str) and education_raw.strip() else
-            education_raw if isinstance(education_raw, list) else []
+            (education_raw if isinstance(education_raw, list) else [])
         )
 
         resume_data = ResumeData(
-            name=extracted.get("Name", ""),
-            email=extracted.get("Email Address", ""),
+            name=extracted.get("Name", "Not found"),
+            email=extracted.get("Email Address", "Not found"),
             skills=skills_list,
             education=education_list,
         )
@@ -157,6 +172,7 @@ async def extract_resume(file: UploadFile = File(...)):
             await doc.insert()
             logger.info("Persisted extraction result to MongoDB: %s", doc.id)
         except Exception:
+           
             logger.warning("Failed to persist extraction result to MongoDB.")
 
         return ExtractionResponse(
@@ -287,3 +303,6 @@ if __name__ == "__main__":
         
         print("All tests completed!")
         sys.exit(0)
+    else:
+        import uvicorn
+        uvicorn.run(app, host="127.0.0.1", port=8000)
