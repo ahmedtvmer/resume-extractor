@@ -154,15 +154,14 @@ def _parse_model_output(raw_output: str) -> Dict[str, str]:
         except (json.JSONDecodeError, TypeError):
             pass
 
-    # Attempt 3: Regex fallback - لضمان عدم ظهور NotFound في الفرونت إند
+    # Attempt 3: Regex fallback
     logger.warning("Could not parse model output as JSON. Raw: %s", response_text[:300])
     extracted = {field: "" for field in FIELDS}
-    
-    # استخراج البيانات باستخدام Regex لملء الحقول المطلوبة
-    name_match = re.search(r"Name:\s*(.*?)(?=Email:|Phone:|Education:|Skills:|$)", response_text, re.IGNORECASE)
+
+    name_match = re.search(r"Name:\s*(.*?)(?=Email:|Phone:|Education:|Skills:|$)", response_text, re.IGNORECASE | re.DOTALL)
     email_match = re.search(r"Email:\s*([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})", response_text, re.IGNORECASE)
-    skills_match = re.search(r"Skills:\s*(.*?)(?=Education:|Experience:|Explanation:|$)", response_text, re.IGNORECASE)
-    edu_match = re.search(r"Education:\s*(.*?)(?=Skills:|Experience:|Explanation:|$)", response_text, re.IGNORECASE)
+    skills_match = re.search(r"Skills:\s*(.*?)(?=Education:|Experience:|Explanation:|$)", response_text, re.IGNORECASE | re.DOTALL)
+    edu_match = re.search(r"Education:\s*(.*?)(?=Skills:|Experience:|Explanation:|$)", response_text, re.IGNORECASE | re.DOTALL)
 
     if name_match: extracted["Name"] = name_match.group(1).strip()
     if email_match: extracted["Email Address"] = email_match.group(1).strip()

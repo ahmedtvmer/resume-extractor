@@ -27,10 +27,7 @@ async def init_db():
         await init_beanie(
             database=db,
             document_models=[ResumeDocument],
-            allow_index_dropping=True
-            
         )
-        await ResumeDocument.get_motor_collection().create_index([("email", 1)], unique=True)
         logger.info("Connected to MongoDB: %s", db_name)
 
     except Exception as e:

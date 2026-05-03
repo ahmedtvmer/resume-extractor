@@ -155,8 +155,8 @@ async def extract_resume(file: UploadFile = File(...)):
         )
 
         resume_data = ResumeData(
-            name=extracted.get("Name", "Not found"),
-            email=extracted.get("Email Address", "Not found"),
+            name=extracted.get("Name", ""),
+            email=extracted.get("Email Address", ""),
             skills=skills_list,
             education=education_list,
         )
@@ -305,4 +305,4 @@ if __name__ == "__main__":
         sys.exit(0)
     else:
         import uvicorn
-        uvicorn.run(app, host="127.0.0.1", port=8000)
+        uvicorn.run(app, host="0.0.0.0", port=8000)

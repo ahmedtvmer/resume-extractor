@@ -1,12 +1,10 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, EmailStr
 from typing import List, Optional
-from beanie import  Indexed
-from pydantic import EmailStr
 
 
 class ResumeData(BaseModel):
     name: str = ""
-    email: Optional[Indexed(EmailStr, unique=True)] = None
+    email: Optional[EmailStr] = None
     skills: List[str] = []
     education: List[str] = []
 
