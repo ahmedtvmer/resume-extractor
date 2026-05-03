@@ -82,6 +82,14 @@ resume-extractor-backend/
 │       ├── ai_extractor.py  # Model loading, inference, JSON parsing
 │       ├── parser.py        # PDF and TXT text extraction
 │       └── s3_helper.py     # AWS S3 upload (ready for deployment)
+├── templates/
+│   ├── index.html           # Upload page (Jinja2)
+│   └── resumes.html         # Stored resumes list page
+├── static/
+│   ├── css/
+│   │   └── style.css        # Frontend styling
+│   └── js/
+│       └── main.js          # Upload and display logic
 ├── final-resume-model/      # LoRA adapter weights (2.2 MB)
 │   ├── adapter_config.json
 │   ├── adapter_model.safetensors
@@ -94,6 +102,7 @@ resume-extractor-backend/
 ├── requirements.txt             # Python dependencies
 ├── pyproject.toml               # Project metadata
 ├── Dockerfile                   # Docker containerization
+├── docker-compose.yml           # App + MongoDB services
 ├── .dockerignore
 ├── .gitignore
 ├── .python-version
@@ -173,7 +182,17 @@ python main.py
 uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 ```
 
-### Production (Docker)
+### Production (Docker Compose)
+
+```bash
+# Build and run app + MongoDB
+docker compose up --build
+
+# Run in detached mode
+docker compose up -d
+```
+
+### Production (Docker only)
 
 ```bash
 # Build
@@ -195,14 +214,21 @@ The API will be available at `http://localhost:8000`
 GET /
 ```
 
-**Response:**
-```json
-{"status": "API is running"}
-```
+**Response:** Serves the upload page (HTML/CSS/JS frontend).
 
 ---
 
-### Get All Stored Resumes
+### View Stored Resumes
+
+```http
+GET /view-resumes
+```
+
+**Response:** Serves the resumes list page (HTML/CSS/JS frontend).
+
+---
+
+### Get All Stored Resumes (API)
 
 ```http
 GET /api/v1/resumes
@@ -368,7 +394,7 @@ Tests:
 
 ### S3 Integration
 
-S3 upload code is implemented in `app/utils/s3_helper.py` but commented out in the API route for local development. Uncomment line 116 in `app/main.py` when deploying to AWS.
+S3 upload code is implemented in `app/utils/s3_helper.py` but commented out in the API route for local development. Uncomment the S3 upload line in `app/main.py` (around line 131) when deploying to AWS.
 
 ---
 
@@ -423,14 +449,15 @@ Evaluation code is in `notebooks/ResumeExtraction.ipynb` (Cell 5).
 - Upload PDF or plain text resume
 - Extract 4 fields: Name, Email, Skills, Education
 - Return structured JSON response
-- Docker containerization ready
+- Persist extracted data to MongoDB (non-blocking)
+- Frontend UI (upload page + stored resumes viewer)
+- Docker + docker-compose containerization ready
 
 ### Not Yet Implemented (Stretch Goals)
 - Experience field extraction
 - Batch upload support
 - Confidence scores per extracted field
 - Arabic resume support
-- Frontend UI (separate repository)
 
 ### Constraints
 - Maximum file size: 10 MB (configurable)
@@ -442,9 +469,10 @@ Evaluation code is in `notebooks/ResumeExtraction.ipynb` (Cell 5).
 ## Ethics & Privacy
 
 - Uses only publicly available datasets (Kaggle)
-- No PII stored or logged
+- No PII stored or logged (extraction results persisted to MongoDB only)
 - Files processed in-memory, deleted after response
 - S3 storage optional and configurable
+- MongoDB connection optional — extraction succeeds even if DB is unavailable
 
 ---
 
